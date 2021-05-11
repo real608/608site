@@ -1,0 +1,273 @@
+<!doctype html>
+<html>
+<head>
+<title>Virtual World</title>
+<meta name="author" content="608">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  font: 13px Helvetica, Arial;
+}
+form {
+  background-color: #82e0ff;
+  padding: 3px;
+  position: relative;
+  width: 100%;
+}
+form input {
+  border: 0;
+  padding: 10px;
+  width: 79%;
+  margin-right: .5%;
+}
+form button {
+  color: white;
+  width: 20%;
+  background: #27b6e6;
+  border: none;
+  padding: 10px;
+}
+#shadow {
+  background: none;
+  position: absolute;
+  z-index: 1;
+  top: 100px;
+  right: 100px;
+}
+#messages {
+  list-style-type: none;
+  margin-top: 50px;
+  margin-bottom: 40px;
+  position: absolute;
+  width: 280px;
+  bottom: 0;
+  overflow-y: auto;
+  word-wrap: break-word;
+  z-index: 1;
+  max-height: 100%;
+}
+#messages li {
+  padding: 5px 10px;
+  z-index: 1;
+}
+#messages li:nth-child(odd) {
+  background: #e3f8ff;
+}
+#chatbox {
+  position: absolute;
+  width: 280px;
+  bottom: 0;
+  z-index: 2;
+}
+#setuser {
+  position: relative;
+  top: 0;
+  z-index: 2;
+}
+#chatarea {
+  width: 280px;
+  float: left;
+}
+#room {
+  height: 500px;
+  width: auto;
+  overflow-x: scroll;
+  overflow-y: hidden;
+}
+#roomCanvas {
+  margin: 0 auto;
+  display: block;
+}
+#userList {
+  background-color: white;
+  z-index: 2;
+}
+#usersOnline {
+  font-weight: bold;
+}
+#nav-header {
+  height: 60px;
+}
+#logo {
+  float: left;
+}
+#nav-right {
+  float: right;
+  height: 40px;
+}
+#nav-row1 {
+  float: right;
+}
+#nav-row2 {
+  float: right;
+  clear: right;
+}
+#nav-row2 button {
+  width: 80px;
+  height: 30px;
+  background-color: #2aabde;
+  color: #FFF;
+  text-align: center;
+}
+#tabContent {
+  background-color: white;
+  border: 1px black solid;
+  width: 700px;
+  float: right;
+  position: absolute;
+  top: 60px;
+  right: 0;
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+<div id="nav-header">
+
+<img id="logo" src="images/logo.png">
+
+<div id="nav-right">
+
+<div id="nav-row1">
+<a id="profile-link" href="account"></a>
+<span>|</span>
+<a id="help-link" href="https://docs.google.com/document/d/1kjCuDVJ0igJ6uXNbEzeb2eksM3L5NolTCwFwv8qc6Ko/edit?usp=sharing">About</a>
+<span>|</span>
+<a id="login" href="login">Login</a>
+<span>|</span>
+<a id="logout" href="logout">Logout</a>
+</div>
+
+<div id="nav-row2">
+<button id="me"><a href="uploadavi">Me</a></button>
+<button id="stuff" onclick="renderStuff()">Stuff</button>
+<button id="games">Games</button>
+<button id="rooms">Rooms</button>
+<button id="groups">Groups</button>
+<button id="shop">Shop</button>
+</div>
+
+</div>
+
+</div>
+
+
+<div id="chatarea">
+
+<form id="setuser" action="">
+<div id="errors"></div>
+<input id="enterUser" class="m" placeholder="Enter your username" autocomplete="off" /><button>Set</button>
+</form>
+
+<div id="userList">
+<ul id="usersOnline">Users Online</ul>
+<ul id="users"></ul>
+</div>
+
+<ul id="messages"></ul>
+
+<form id="chatbox" action="">
+<input class="m" placeholder="Type here to chat" autocomplete="off" /><button>Send</button>
+</form>
+
+</div>
+
+
+<div class="chunk" id="room">
+<div style="display: none;">
+<img id="scream" src="/Rooooom2.png">
+<img id="shadow" src="/Earthy2.png">
+<img id="five" src="public/images/five.png">
+</div>
+<canvas id="canvas1" width="1230" height="505"style="border:1px solid #d3d3d3;">
+We're sorry. Server 2 requires Internet Explorer 8 to function.
+</canvas>
+</div>
+
+</div>
+
+<script src="/macaroni.js"></script>
+<script src="https://code.jquery.com/jquery-1.11.1.js"></script> 
+<script>
+$(function () {
+  var socket = io();
+  var user = "???";
+  var x = document.getElementById("ohno");
+  var c1 = document.getElementById("canvas1");
+  var ctx1 = c1.getContext("2d");
+  var img = document.getElementById("scream");
+  ctx1.drawImage(img, 0, 0);
+  var img2 = document.getElementById("shadow");
+  ctx1.drawImage(img2, 250, 90);
+  var shadow = {
+    x: 250, y: 90
+  }
+  function drawShadow() {
+    ctx1.drawImage(img2, shadow.x, shadow.y);
+  }
+  $(document).keydown(function(e) {
+    switch(e.which) {
+      case 37:
+        shadow.x -= 5;
+        break;
+      case 38:
+        shadow.y -= 5;
+        break;
+      case 39:
+        shadow.x += 5;
+        break;
+      case 40:
+        shadow.y += 5;
+        break;
+      default:
+        return;
+    }
+    drawShadow();
+  });
+  $(".float").click(function() {
+    x.play();
+  });
+  $('#chatbox').submit(function(e){
+    e.preventDefault();
+    socket.emit('newmsg', {username: user, msg: $('#chatbox .m').val()});
+    $('#chatbox .m').val('');
+  });
+  function setUsername() {
+    socket.emit('setUsername', document.getElementById('grah').value);
+  }
+  $('#setuser').submit(function(e){
+    e.preventDefault();
+  //  socket.emit('setUsername', $('#setuser .m').val());
+    setUsername();
+  });
+  socket.on('userExists', function(data) {
+    document.getElementById('errors').innerHTML = data;
+  });
+  socket.on('userSet', function(data) {
+    user = data.username;
+    document.getElementById('errors').innerHTML = user + " user added";
+  });
+  function sendMessage() {
+    var msg = document.getElementById('message').value;
+    if(msg) {
+      socket.emit('msg', {message: msg, user: user});
+    }
+  }
+  socket.on('newmsg', function(data){
+    if(data.msg) {
+      var msguser = data.username.bold();
+      var msgfull = msguser +  ": " + data.msg;
+      $('#messages').append($('<li>').html(msgfull));
+      document.getElementById("chatarea").scrollTo(0, document.getElementById("messages").scrollHeight);
+    }
+  });
+});
+</script>
+</body>
+</html>
